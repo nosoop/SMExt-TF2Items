@@ -317,6 +317,14 @@ DETOUR_DECL_MEMBER3(CTFPlayer_GetLoadoutItem, CEconItemView*, int, iClass, int, 
 				
 				g_LoadoutCache[entry] = std::make_shared<CEconItemView>();
 				CSCICopy(result, g_LoadoutCache[entry].get());
+				
+				// remove the underlying item ref
+				// it looks like the itemID is the most important portion
+				g_LoadoutCache[entry]->m_ItemHandle.m_pItem = nullptr;
+				g_LoadoutCache[entry]->m_ItemHandle.m_ulItemID = -1L;
+				g_LoadoutCache[entry]->m_iItemID = 0L;
+				g_LoadoutCache[entry]->m_iItemIDHigh = 0;
+				g_LoadoutCache[entry]->m_iItemIDLow = 0;
 
 				if (pScriptedItemOverride->m_bFlags & OVERRIDE_ITEM_DEF)
 				{
