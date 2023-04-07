@@ -357,11 +357,6 @@ DETOUR_DECL_MEMBER3(CTFPlayer_GetLoadoutItem, CEconItemView*, int, iClass, int, 
 					g_LoadoutCache[entry]->m_AttributeList.m_Attributes.AddMultipleToTail(pScriptedItemOverride->m_iCount, pScriptedItemOverride->m_Attributes);
 				}
 
-				if (result->m_iEntityQuality == 0)
-				{
-					g_LoadoutCache[entry]->m_iEntityQuality = 0;
-				}
-				
 				return g_LoadoutCache[entry].get();
 			}
 	}
