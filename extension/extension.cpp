@@ -39,12 +39,17 @@
 
 #include "extension.h"
 
+#include <tuple>
+#include <map>
+
 TF2Items g_TF2Items;
 
 SMEXT_LINK(&g_TF2Items);
 
 SH_DECL_HOOK2_void(IServerGameClients, ClientPutInServer, SH_NOATTRIB, 0, edict_t *, char const *);
 SH_DECL_MANUALHOOK4(MHook_GiveNamedItem, 0, 0, 0, CBaseEntity *, char const *, int, CEconItemView *, bool);
+
+CDetour *g_pDetourGetLoadoutItem;
 
 ICvar *icvar = NULL;
 IServerGameClients *gameclients = NULL;
@@ -63,12 +68,18 @@ int ClientPutInServer_Hook = 0;
 
 IForward *g_pForwardGiveItem = NULL;
 IForward *g_pForwardGiveItem_Post = NULL;
+IForward *g_pForwardGetLoadoutItem = nullptr;
 
 void *g_pVTable;
 void *g_pVTable_Attributes;
 
 HandleType_t g_ScriptedItemOverrideHandleType = 0;
 TScriptedItemOverrideTypeHandler g_ScriptedItemOverrideHandler;
+
+// entry for player index, class, and slot
+using PlayerLoadoutSlot = std::tuple<int, int, int>;
+
+std::map<PlayerLoadoutSlot, std::shared_ptr<CEconItemView>> g_LoadoutCache;
 
 // the maximum number of attributes that an item can support
 const int g_MaxAttributes = 20;
@@ -275,6 +286,80 @@ CBaseEntity *Hook_GiveNamedItem_Post(char const *szClassname, int iSubType, CEco
 	RETURN_META_VALUE(MRES_IGNORED, pItemEntiy);
 }
 
+DETOUR_DECL_MEMBER3(CTFPlayer_GetLoadoutItem, CEconItemView*, int, iClass, int, iSlot, bool, bReportAllowlist)
+{
+	CEconItemView *result = DETOUR_MEMBER_CALL(CTFPlayer_GetLoadoutItem)(iClass, iSlot, bReportAllowlist);
+	
+	cell_t iClient = gamehelpers->EntityToBCompatRef(reinterpret_cast<CBaseEntity*>(this));
+	if (!playerhelpers->GetGamePlayer(iClient)->IsInGame())
+	{
+		return result;
+	}
+	
+	cell_t forwardResult{};
+	g_pForwardGetLoadoutItem->PushCell(iClient);
+	g_pForwardGetLoadoutItem->PushCell(iClass);
+	g_pForwardGetLoadoutItem->PushCell(iSlot);
+	
+	cell_t overrideHandle{};
+	g_pForwardGetLoadoutItem->PushCellByRef(&overrideHandle);
+	g_pForwardGetLoadoutItem->Execute(&forwardResult);
+	
+	switch (forwardResult) {
+		case Pl_Changed:
+			{
+				TScriptedItemOverride *pScriptedItemOverride = GetScriptedItemOverrideFromHandle(overrideHandle);
+				if (pScriptedItemOverride == NULL) {
+					return result;
+				}
+
+				PlayerLoadoutSlot entry{iClient, iClass, iSlot};
+				
+				g_LoadoutCache[entry] = std::make_shared<CEconItemView>();
+				CSCICopy(result, g_LoadoutCache[entry].get());
+
+				if (pScriptedItemOverride->m_bFlags & OVERRIDE_ITEM_DEF)
+				{
+					g_LoadoutCache[entry]->m_iItemDefinitionIndex = pScriptedItemOverride->m_iItemDefinitionIndex;
+				}
+
+				if (pScriptedItemOverride->m_bFlags & OVERRIDE_ITEM_LEVEL)
+				{
+					g_LoadoutCache[entry]->m_iEntityLevel = pScriptedItemOverride->m_iEntityLevel;
+				}
+
+				if (pScriptedItemOverride->m_bFlags & OVERRIDE_ITEM_QUALITY)
+				{
+					g_LoadoutCache[entry]->m_iEntityQuality = pScriptedItemOverride->m_iEntityQuality;
+				}
+
+				if (pScriptedItemOverride->m_bFlags & OVERRIDE_ATTRIBUTES)
+				{
+#ifndef NO_FORCE_QUALITY
+					// Even if we don't want to override the item quality, do if it's set to 0.
+					if (g_LoadoutCache[entry]->m_iEntityQuality == 0 && !(pScriptedItemOverride->m_bFlags & OVERRIDE_ITEM_QUALITY) && pScriptedItemOverride->m_iCount > 0) g_LoadoutCache[entry]->m_iEntityQuality = 6;
+#endif
+
+					if (!(pScriptedItemOverride->m_bFlags & PRESERVE_ATTRIBUTES))
+					{
+						g_LoadoutCache[entry]->m_bDoNotIterateStaticAttributes = true;
+					}
+
+					g_LoadoutCache[entry]->m_AttributeList.m_Attributes.RemoveAll();
+					g_LoadoutCache[entry]->m_AttributeList.m_Attributes.AddMultipleToTail(pScriptedItemOverride->m_iCount, pScriptedItemOverride->m_Attributes);
+				}
+
+				if (result->m_iEntityQuality == 0)
+				{
+					g_LoadoutCache[entry]->m_iEntityQuality = 0;
+				}
+				
+				return g_LoadoutCache[entry].get();
+			}
+	}
+	return result;
+}
+
 void CSCICopy(CEconItemView *olditem, CEconItemView *newitem)
 {
 	memset(newitem, 0, sizeof(CEconItemView));
@@ -427,6 +512,10 @@ bool TF2Items::SDK_OnLoad(char *error, size_t maxlen, bool late) {
 		SH_MANUALHOOK_RECONFIGURE(MHook_GiveNamedItem, iOffset, 0, 0);
 		g_pSM->LogMessage(myself, "\"GiveNamedItem\" offset = %d", iOffset);
 	}
+	
+	CDetourManager::Init(g_pSM->GetScriptingEngine(), g_pGameConf);
+	
+	g_pDetourGetLoadoutItem = DETOUR_CREATE_MEMBER(CTFPlayer_GetLoadoutItem, "GetLoadoutItem");
 
 	// If it's a late load, there might be the chance there are players already on the server. Just
 	// check for this and try to hook them instead of waiting for the next player. -- Damizean
@@ -495,6 +584,9 @@ bool TF2Items::SDK_OnLoad(char *error, size_t maxlen, bool late) {
 	// Create forwards
 	g_pForwardGiveItem = g_pForwards->CreateForward("TF2Items_OnGiveNamedItem", ET_Hook, 4, NULL, Param_Cell, Param_String, Param_Cell, Param_CellByRef);
 	g_pForwardGiveItem_Post = g_pForwards->CreateForward("TF2Items_OnGiveNamedItem_Post", ET_Ignore, 6, NULL, Param_Cell, Param_String, Param_Cell, Param_Cell, Param_Cell, Param_Cell);
+	g_pForwardGetLoadoutItem = g_pForwards->CreateForward("TF2Items_OnGetLoadoutItem", ET_Hook, 4, NULL, Param_Cell, Param_Cell, Param_Cell, Param_CellByRef);
+
+	g_pDetourGetLoadoutItem->EnableDetour();
 
 	return true;
 }
@@ -525,6 +617,9 @@ void TF2Items::SDK_OnUnload()
 
 	g_pForwards->ReleaseForward(g_pForwardGiveItem);
 	g_pForwards->ReleaseForward(g_pForwardGiveItem_Post);
+	g_pForwards->ReleaseForward(g_pForwardGetLoadoutItem);
+	
+	g_pDetourGetLoadoutItem->DisableDetour();
 }
 
 bool TF2Items::SDK_OnMetamodUnload(char *error, size_t maxlen)

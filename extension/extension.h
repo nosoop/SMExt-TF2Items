@@ -28,6 +28,8 @@
 
 #include "smsdk_ext.hpp"
 
+#include <CDetour/detours.h>
+
 //#include "iplayerinfo.h"
 //#include "convar.h"
 

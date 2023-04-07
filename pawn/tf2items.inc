@@ -202,6 +202,16 @@ forward Action TF2Items_OnGiveNamedItem(int client, char[] classname, int itemDe
 forward void TF2Items_OnGiveNamedItem_Post(int client, char[] classname, int itemDefIndex, int level, int quality, int entity);
 
 /**
+ * Called when the game inspects the player inventory.
+ * 
+ * @param client    Client index.
+ * @param class     Player class index.
+ * @param slot      Loadout slot index.
+ * @param item      Handle to a TF2Item object that describes what values will be overwritten.
+ */
+forward Action TF2Items_OnGetLoadoutItem(int client, int class, int slot, Handle &item);
+
+/**
  * Do not edit below this line!
  */
 public Extension __ext_tf2items = 
