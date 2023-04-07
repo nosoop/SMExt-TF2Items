@@ -326,6 +326,7 @@ DETOUR_DECL_MEMBER3(CTFPlayer_GetLoadoutItem, CEconItemView*, int, iClass, int, 
 				g_LoadoutCache[entry]->m_iItemIDHigh = 0;
 				g_LoadoutCache[entry]->m_iItemIDLow = 0;
 				g_LoadoutCache[entry]->m_iInventoryPosition = 0;
+				g_LoadoutCache[entry]->m_iAccountID = 0;
 
 				if (pScriptedItemOverride->m_bFlags & OVERRIDE_ITEM_DEF)
 				{
