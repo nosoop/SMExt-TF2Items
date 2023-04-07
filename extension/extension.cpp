@@ -37,7 +37,7 @@
 
 #define NO_FORCE_QUALITY
 
-#include "extension.hpp"
+#include "extension.h"
 
 TF2Items g_TF2Items;
 
