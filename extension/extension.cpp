@@ -59,6 +59,7 @@ ConVar TF2ItemsVersion("tf2items_version", SMEXT_CONF_VERSION, FCVAR_SPONLY|FCVA
 ConVar HookTFBot("tf2items_bothook", "1", FCVAR_NONE, "Hook intelligent TF2 bots.");
 
 IGameConfig *g_pGameConf = NULL;
+IGameConfig *g_pSecondaryGameConf = NULL;
 
 int GiveNamedItem_player_Hook = 0;
 int GiveNamedItem_bot_Hook = 0;
@@ -519,8 +520,16 @@ bool TF2Items::SDK_OnLoad(char *error, size_t maxlen, bool late) {
 		g_pSM->LogMessage(myself, "\"GiveNamedItem\" offset = %d", iOffset);
 	}
 	
-	CDetourManager::Init(g_pSM->GetScriptingEngine(), g_pGameConf);
+	if (!gameconfs->LoadGameConfigFile("tf2.items.nosoop", &g_pSecondaryGameConf, conf_error, sizeof(conf_error)))
+	{
+		if (conf_error[0])
+		{
+			snprintf(error, maxlen, "Could not read tf2.items.txt: %s\n", conf_error);
+		}
+		return false;
+	}
 	
+	CDetourManager::Init(g_pSM->GetScriptingEngine(), g_pSecondaryGameConf);
 	g_pDetourGetLoadoutItem = DETOUR_CREATE_MEMBER(CTFPlayer_GetLoadoutItem, "GetLoadoutItem");
 
 	// If it's a late load, there might be the chance there are players already on the server. Just
@@ -618,6 +627,7 @@ void TF2Items::SDK_OnUnload()
 #endif // TF2ITEMS_DEBUG_HOOKING
 
 	gameconfs->CloseGameConfigFile(g_pGameConf);
+	gameconfs->CloseGameConfigFile(g_pSecondaryGameConf);
 
 	g_pHandleSys->RemoveType(g_ScriptedItemOverrideHandleType, myself->GetIdentity());
 
