@@ -14,6 +14,11 @@ folder_list = [
   'addons/sourcemod/scripting/include',
 ]
 
+if Extension.plugins:
+  folder_list += [
+    'addons/sourcemod/plugins/optional',
+  ]
+
 # Create the distribution folder hierarchy.
 folder_map = {}
 for folder in folder_list:
@@ -53,3 +58,7 @@ CopyFiles('', 'addons/sourcemod/configs', [
 # Copy binaries.
 for cxx_task in Extension.extensions:
   builder.AddCopy(cxx_task.binary, folder_map['addons/sourcemod/extensions'])
+
+# Copy plugins
+for smx_file, smx_entry in Extension.plugins.items():
+  builder.AddCopy(smx_entry, folder_map['addons/sourcemod/plugins/optional'])
