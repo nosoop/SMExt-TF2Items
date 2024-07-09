@@ -8,3 +8,6 @@
 /extension/msvc10/tf2items.sdf
 /extension/msvc10/tf2items.sln
 /extension/msvc10/tf2items.suo
+
+hl2sdk-manifests/
+safetyhook/

@@ -47,6 +47,9 @@ TF2Items g_TF2Items;
 SMEXT_LINK(&g_TF2Items);
 
 SH_DECL_HOOK2_void(IServerGameClients, ClientPutInServer, SH_NOATTRIB, 0, edict_t *, char const *);
+
+// FIXME: error C4789: buffer 'mfp' of size 8 bytes will be overrun; 8 bytes will be written starting at offset 8
+#pragma warning( disable: 4789 )
 SH_DECL_MANUALHOOK4(MHook_GiveNamedItem, 0, 0, 0, CBaseEntity *, char const *, int, CEconItemView *, bool);
 
 CDetour *g_pDetourGetLoadoutItem;
@@ -106,6 +109,10 @@ sp_nativeinfo_t g_ExtensionNatives[] =
 	{ "TF2Items_GetAttributeValue",	TF2Items_GetAttributeValue },
 	{ NULL,							NULL }
 };
+
+#define TF2ITEMS_DEBUG_HOOKING
+#define TF2ITEMS_DEBUG_ITEMS
+#define TF2ITEMS_DEBUG_HOOKING_GNI
 
 CBaseEntity *Hook_GiveNamedItem(char const *szClassname, int iSubType, CEconItemView *cscript, bool b)
 {
@@ -510,16 +517,6 @@ bool TF2Items::SDK_OnLoad(char *error, size_t maxlen, bool late) {
 		return false;
 	}
 
-	int iOffset;
-	if (!g_pGameConf->GetOffset("GiveNamedItem", &iOffset))
-	{
-		snprintf(error, maxlen, "Could not find offset for GiveNamedItem");
-		return false;
-	} else {
-		SH_MANUALHOOK_RECONFIGURE(MHook_GiveNamedItem, iOffset, 0, 0);
-		g_pSM->LogMessage(myself, "\"GiveNamedItem\" offset = %d", iOffset);
-	}
-	
 	if (!gameconfs->LoadGameConfigFile("tf2.items.nosoop", &g_pSecondaryGameConf, conf_error, sizeof(conf_error)))
 	{
 		if (conf_error[0])
@@ -527,6 +524,16 @@ bool TF2Items::SDK_OnLoad(char *error, size_t maxlen, bool late) {
 			snprintf(error, maxlen, "Could not read tf2.items.txt: %s\n", conf_error);
 		}
 		return false;
+	}
+
+	int iOffset;
+	if (!g_pGameConf->GetOffset("GiveNamedItem", &iOffset) && !g_pSecondaryGameConf->GetOffset("GiveNamedItem", &iOffset))
+	{
+		snprintf(error, maxlen, "Could not find offset for GiveNamedItem");
+		return false;
+	} else {
+		SH_MANUALHOOK_RECONFIGURE(MHook_GiveNamedItem, iOffset, 0, 0);
+		g_pSM->LogMessage(myself, "\"GiveNamedItem\" offset = %d", iOffset);
 	}
 	
 	CDetourManager::Init(g_pSM->GetScriptingEngine(), g_pSecondaryGameConf);
