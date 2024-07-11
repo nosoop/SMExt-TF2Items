@@ -61,6 +61,8 @@ class ExtensionConfig(object):
     self.all_targets = []
     self.target_archs = set()
     self.libsafetyhook = {}
+    self.spcomp_bin = None
+    self.plugins = {}
 
     if builder.options.targets:
       target_archs = builder.options.targets.split(',')
@@ -142,13 +144,22 @@ class ExtensionConfig(object):
       raise Exception('Could not find a source copy of SourceMod')
     self.sm_root = Normalize(self.sm_root)
 
-  def configure(self):
-    
-    allowed_archs = ['x86','x86_64']
+  def detectSPCompiler(self):
+    if builder.options.no_plugins:
+      return
+    spcomp_path = builder.options.spcomp_path
+    if not spcomp_path or not os.path.isdir(spcomp_path):
+      spcomp_found = shutil.which("spcomp")
+      if not spcomp_found:
+        raise Exception('Could not find a path for spcomp')
+    self.spcomp_bin = shutil.which('spcomp', path = spcomp_path)
+    if not self.spcomp_bin:
+      raise Exception('Could not find spcomp')
 
+  def configure(self):
+    allowed_archs = ['x86','x86_64']
     if not set(self.target_archs).issubset(allowed_archs):
       raise Exception('Unknown target architecture: {0}'.format(self.target_archs))
-
     for cxx in self.all_targets:
         self.configure_cxx(cxx)
 
@@ -332,7 +343,7 @@ class ExtensionConfig(object):
 
   def configure_windows(self, cxx):
     cxx.defines += ['WIN32', '_WINDOWS']
-    
+
   def LibraryBuilder(self, compiler, name):
     binary = compiler.Library(name)
     self.AddVersioning(binary)
@@ -449,6 +460,7 @@ class SafetyHookShim(object):
 
 Extension = ExtensionConfig()
 Extension.detectSDKs()
+Extension.detectSPCompiler()
 Extension.configure()
 
 # we need to pull safetyhook in locally because ambuild does not take kindly to outside relpaths
@@ -467,6 +479,11 @@ builder.targets = builder.CloneableList(Extension.all_targets)
 BuildScripts = [
   'extension/AMBuilder',
 ]
+
+if not builder.options.no_plugins:
+  BuildScripts += [
+    'pawn/AMBuilder',
+  ]
 
 if builder.backend == 'amb2':
   BuildScripts += [
