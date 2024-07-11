@@ -110,10 +110,6 @@ sp_nativeinfo_t g_ExtensionNatives[] =
 	{ NULL,							NULL }
 };
 
-#define TF2ITEMS_DEBUG_HOOKING
-#define TF2ITEMS_DEBUG_ITEMS
-#define TF2ITEMS_DEBUG_HOOKING_GNI
-
 CBaseEntity *Hook_GiveNamedItem(char const *szClassname, int iSubType, CEconItemView *cscript, bool b)
 {
 	#if defined TF2ITEMS_DEBUG_HOOKING || defined TF2ITEMS_DEBUG_HOOKING_GNI
