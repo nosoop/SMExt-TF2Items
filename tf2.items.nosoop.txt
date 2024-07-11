@@ -2,12 +2,23 @@
 {
 	"tf"
 	{
+		"Offsets"
+		{
+			"GiveNamedItem"
+			{
+				// offset copy here just so it doesn't get stomped by SM autoupdate
+				"windows64"	"486"
+				"linux64"	"493"
+			}
+		}
 		"Signatures"
 		{
 			"GetLoadoutItem"
 			{
 				"windows"		"\x55\x8B\xEC\x83\xEC\x10\x53\x56\x8B\xF1\x8B\x0D\x2A\x2A\x2A\x2A"
+				"windows64"		"\x48\x89\x5C\x24\x08\x48\x89\x6C\x24\x10\x48\x89\x74\x24\x18\x44\x88\x4C\x24\x20\x57\x41\x54"
 				"linux"			"@_ZN9CTFPlayer14GetLoadoutItemEiib"
+				"linux64"		"@_ZN9CTFPlayer14GetLoadoutItemEiib"
 			}
 		}
 	}
