@@ -48,8 +48,10 @@ SMEXT_LINK(&g_TF2Items);
 
 SH_DECL_HOOK2_void(IServerGameClients, ClientPutInServer, SH_NOATTRIB, 0, edict_t *, char const *);
 
-// FIXME: error C4789: buffer 'mfp' of size 8 bytes will be overrun; 8 bytes will be written starting at offset 8
 #if defined COMPILER_MSVC
+// error C4789: buffer 'mfp' of size 8 bytes will be overrun; 8 bytes will be written starting at offset 8
+// fixed by https://github.com/alliedmodders/metamod-source/pull/161
+// not currently merged into 1.12, so we'll just suppress it here in the meantime for users compiling against that
 #pragma warning( disable: 4789 )
 #endif
 SH_DECL_MANUALHOOK4(MHook_GiveNamedItem, 0, 0, 0, CBaseEntity *, char const *, int, CEconItemView *, bool);
