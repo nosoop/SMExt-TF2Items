@@ -23,8 +23,7 @@ parser.options.add_argument('-s', '--sdks', default='present', dest='sdks',
                             ' or comma-delimited list of engine names')
 parser.options.add_argument('--targets', type=str, dest='targets', default=None,
                           help="Override the target architecture (use commas to separate multiple targets).")
-# builder.options.add_option('--spcomp-path', type=str, dest='spcomp_path', default=None,
-#                        help='Path to directory containing spcomp')
-# builder.options.add_option('--no-plugins', action='store_true',
-#                        help='Do not compile plugins')
+parser.options.add_argument('--spcomp-path', type=str, dest='spcomp_path', default=None,
+                       help='Path to directory containing spcomp')
+parser.options.add_argument('--no-plugins', action='store_true', help='Do not compile plugins')
 parser.Configure()
