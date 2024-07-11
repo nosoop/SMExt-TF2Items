@@ -3,6 +3,8 @@ name: Build Workflow
 
 on:
   push
+    branches:
+      - main
 
 jobs:
   create_release:
