@@ -37,7 +37,7 @@
  * @brief Contains wrappers for making Extensions easier to write.
  */
 
-#include "smsdk_config.hpp"
+#include "smsdk_config.h"
 #include <IExtensionSys.h>
 #include <IHandleSys.h>
 #include <sp_vm_api.h>

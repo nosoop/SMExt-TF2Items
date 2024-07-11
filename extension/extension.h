@@ -84,7 +84,9 @@ public:
 	int32 m_nRefundableCurrency; //12
 };
 
+#ifndef PLATFORM_64BITS
 #pragma pack(push, 4)
+#endif
 
 
 class CEconItemHandle
@@ -159,11 +161,19 @@ public:
 	bool m_bDoNotIterateStaticAttributes; //144
 };
 
+#ifndef PLATFORM_64BITS
 #pragma pack(pop)
+#endif
 
+#ifdef PLATFORM_64BITS
+static_assert(sizeof(CEconItemView) == 208, "CEconItemView - incorrect size on this compiler");
+static_assert(sizeof(CEconItemHandle) == 32, "CEconItemHandle - incorrect size on this compiler");
+static_assert(sizeof(CAttributeList) == 48, "CAttributeList - incorrect size on this compiler");
+#else
 static_assert(sizeof(CEconItemView) == 148, "CEconItemView - incorrect size on this compiler");
 static_assert(sizeof(CEconItemHandle) == 24, "CEconItemHandle - incorrect size on this compiler");
 static_assert(sizeof(CAttributeList) == 28, "CAttributeList - incorrect size on this compiler");
+#endif
 
 // enable to debug memory layout issues
 #if 0

@@ -1,27 +1,15 @@
 # vim: set sts=2 ts=8 sw=2 tw=99 et ft=python:
-import os, sys
+import os
 
 projectName = 'tf2items'
+extName = projectName + '.ext.'
 
+# smsdk_ext.cpp will be automatically added later
 sourceFiles = [
   'extension.cpp',
-  
-  os.path.join(Extension.sm_root, 'public', 'CDetour', 'detours.cpp'),
-  os.path.join(Extension.sm_root, 'public', 'asm', 'asm.c'),
-  
-  os.path.join(Extension.sm_root, 'public', 'libudis86', 'decode.c'),
-  os.path.join(Extension.sm_root, 'public', 'libudis86', 'itab.c'),
-  os.path.join(Extension.sm_root, 'public', 'libudis86', 'syn-att.c'),
-  os.path.join(Extension.sm_root, 'public', 'libudis86', 'syn-intel.c'),
-  os.path.join(Extension.sm_root, 'public', 'libudis86', 'syn.c'),
-  os.path.join(Extension.sm_root, 'public', 'libudis86', 'udis86.c')
 ]
 
-###############
-# Make sure to edit PackageScript, which copies your files to their appropriate locations
-# Simple extensions do not need to modify past this point.
-
-project = Extension.HL2Project(builder, projectName + '.ext')
+project = builder.LibraryProject(extName)
 
 if os.path.isfile(os.path.join(builder.currentSourcePath, 'sdk', 'smsdk_ext.cpp')):
   # Use the copy included in the project
@@ -31,13 +19,21 @@ else:
   project.sources += [os.path.join(Extension.sm_root, 'public', 'smsdk_ext.cpp')]
 
 project.sources += sourceFiles
-  
+
 for sdk_name in Extension.sdks:
   sdk = Extension.sdks[sdk_name]
-  
-  binary = Extension.HL2Config(project, projectName + '.ext.' + sdk.ext, sdk)
-  
-  # udis86 will raise a warning on memset without this set
-  binary.compiler.defines += ['HAVE_STRING_H']
+  if sdk['name'] in ['mock']:
+    continue
 
-Extension.extensions = builder.Add(project)
+  for cxx in builder.targets:
+    if not cxx.target.arch in sdk['platforms'][cxx.target.platform]:
+      continue
+
+    # hack to use bcompat filenames
+    # I don't want to have to deal with complaints of people forgetting to delete the original
+    ext_or_tf = '2.ep2v' if sdk_name == 'tf2' else sdk['extension']
+
+    binary = Extension.HL2ExtConfig(project, builder, cxx, extName + ext_or_tf, sdk)
+    Extension.AddCDetour(binary)
+
+Extension.extensions += builder.Add(project)
