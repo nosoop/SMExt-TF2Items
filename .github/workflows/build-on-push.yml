@@ -42,18 +42,35 @@ jobs:
         os:
           - ubuntu-20.04
           - windows-latest
+        target_arch:
+          - x86
+          - x86_64
         include:
           - meta_branch: "master"
             sm_branch: "master"
             spcomp_version: "1.11.x"
 
           - os: ubuntu-20.04
+            target_arch: x86
             os_short: linux
             package_ext: tar.gz
 
+          - os: ubuntu-20.04
+            target_arch: x86_64
+            os_short: linux64
+            package_ext: x64.tar.gz
+
           - os: windows-latest
+            target_arch: x86
             os_short: win
             package_ext: zip
+            vs_dev_arch: x86
+
+          - os: windows-latest
+            target_arch: x86_64
+            os_short: win64
+            package_ext: x64.zip
+            vs_dev_arch: x64
 
     steps:
       - name: Prepare env
@@ -80,7 +97,7 @@ jobs:
         run: |
           :: See https://github.com/microsoft/vswhere/wiki/Find-VC
           for /f "usebackq delims=*" %%i in (`vswhere -latest -property installationPath`) do (
-            call "%%i"\Common7\Tools\vsdevcmd.bat -arch=x86 -host_arch=x64
+            call "%%i"\Common7\Tools\vsdevcmd.bat -arch=${{ matrix.vs_dev_arch }} -host_arch=x64
           )
           
           :: Loop over all environment variables and make them global.
@@ -152,7 +169,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          python3 ../configure.py --sdks=tf2 --sm-path="${{ github.workspace }}/sourcemod" --mms-path="${{ github.workspace }}/mmsource" --symbol-files --enable-optimize --hl2sdk-manifest-path="${{ github.workspace }}/hl2sdk-manifests"
+          python3 ../configure.py --sdks=tf2 --sm-path="${{ github.workspace }}/sourcemod" --mms-path="${{ github.workspace }}/mmsource" --symbol-files --enable-optimize --hl2sdk-manifest-path="${{ github.workspace }}/hl2sdk-manifests" --targets ${{ matrix.target_arch }}
           ambuild
 
       - name: Build Package (Windows)
