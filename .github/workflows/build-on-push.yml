@@ -46,8 +46,8 @@ jobs:
           - x86
           - x86_64
         include:
-          - meta_branch: "master"
-            sm_branch: "master"
+          - meta_branch: "1.12-dev"
+            sm_branch: "1.12-dev"
             spcomp_version: "1.11.x"
 
           - os: ubuntu-20.04
