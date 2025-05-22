@@ -7,8 +7,8 @@
 			"GiveNamedItem"
 			{
 				// offset copy here just so it doesn't get stomped by SM autoupdate
-				"windows64"	"486"
-				"linux64"	"493"
+				"windows64"	"487"
+				"linux64"	"494"
 			}
 		}
 		"Signatures"
